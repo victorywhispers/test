@@ -1,3 +1,8 @@
+disks:
+  - name: wormgpt-data
+    mountPath: /data
+    sizeGB: 1
+
 services:
   # Frontend static site
   - type: static
@@ -12,36 +17,58 @@ services:
   - type: web
     name: wormgpt-api
     env: python
+    disk:
+      name: wormgpt-data
+      mountPath: /data
     buildCommand: |
       python -m pip install --upgrade pip
       pip install -r requirements.txt
-    startCommand: gunicorn api.server:app
+      mkdir -p /data
+      cp user_data.json /data/user_data.json || echo "No initial user_data.json"
+      chmod 666 /data/user_data.json || true
+    startCommand: cd api && gunicorn server:app --timeout 120 --keep-alive 65 --workers 2
+    healthCheckPath: /health
+    healthCheckTimeout: 60
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.9.0
-      - key: FLASK_ENV
-        value: production
       - key: USER_DATA_FILE
         value: /data/user_data.json
-      - key: CORS_ORIGINS
-        value: https://wormgpt-frontend.onrender.com
 
-  # Telegram Bot Service
+  # Key Generator Service
   - type: web
-    name: wormgpt-keygen
+    name: wormgpt-keygen  
     env: python
+    disk:
+      name: wormgpt-data
+      mountPath: /data
     buildCommand: |
       python -m pip install --upgrade pip
       pip install -r keygen_requirements.txt
-    startCommand: python KEYGEN.PY
+      mkdir -p /data
+    startCommand: gunicorn -b 0.0.0.0:$PORT -w 1 --timeout 0 KEYGEN:web_app
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.9.0
+      - key: USER_DATA_FILE
+        value: /data/user_data.json
+      - key: BOT_TOKEN 
+        value: "7787758054:AAH1va0pP1USZ10HlTofCQSTkn33k2h68Mw"
+      - key: PORT
+        value: "10000"
+    healthCheckPath: /health
+    healthCheckTimeout: 60
+
+  # Key Generator Bot Service
+  - type: web
+    name: wormgpt-keybot
+    env: python
+    disk:
+      name: wormgpt-data
+      mountPath: /data
+    buildCommand: |
+      python -m pip install --upgrade pip
+      pip install -r requirements.txt
+      mkdir -p /data
+    startCommand: python WEBBOT.PY
+    envVars:
       - key: BOT_TOKEN
-        value: "7787758054:AAGYh_NE_3pWp5VgQggbHS0U2VaVu-ZzPuU"
-      - key: CHANNEL_USERNAME
-        value: "hecabruss"
-      - key: CHANNEL_LINK
-        value: "https://t.me/hecabruss"
+        value: "7909216903:AAGJXAo1nWT0Wqs6ohOdNaWwtejUEKcHtZs"
       - key: USER_DATA_FILE
         value: /data/user_data.json

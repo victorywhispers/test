@@ -28,34 +28,19 @@ window.addEventListener('offline', () => {
 async function initialize() {
     try {
         // Initialize local database first
-        try {
-            await setupDB();
-        } catch (error) {
-            ErrorService.handleDatabaseError();
-            return;
-        }
+        await setupDB();
         
-        // Verify key in local storage
-        try {
-            const isKeyValid = await keyValidationService.isKeyValid();
-            if (!isKeyValid) {
-                const verificationPage = new VerificationPage();
-                document.body.appendChild(verificationPage.container);
-                return;
-            }
-        } catch (error) {
-            ErrorService.showError('Key validation failed. Please try again.', 'error');
+        // Check if key exists and is valid
+        const isKeyValid = await keyValidationService.isKeyValid();
+        if (!isKeyValid) {
+            window.location.href = './validation.html';
             return;
         }
 
-        // Initialize local services
-        try {
-            await chatsService.initialize();
-            await personalityService.initialize();
-            initializeEventListeners();
-        } catch (error) {
-            ErrorService.showError('Failed to initialize services. Please refresh.', 'error');
-        }
+        // Initialize services if key is valid
+        await chatsService.initialize();
+        await personalityService.initialize();
+        initializeEventListeners();
     } catch (error) {
         console.error('Initialization failed:', error);
         ErrorService.showError('Application failed to start. Please refresh.', 'error');

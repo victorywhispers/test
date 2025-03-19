@@ -5,7 +5,19 @@ import datetime
 import os
 
 app = Flask(__name__)
-CORS(app)
+# Update CORS configuration
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "http://localhost:5173",
+            "https://wormgpt-frontend.onrender.com",
+            "https://wormgpt-frontend.onrender.com/"
+        ],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Accept", "Origin"],
+        "supports_credentials": True
+    }
+})
 
 # Use environment variables for production
 USER_DATA_FILE = os.getenv('USER_DATA_FILE', os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'user_data.json')))
@@ -116,7 +128,18 @@ def validate_key():
 
 @app.route('/health', methods=['GET'])
 def health_check():
-    return jsonify({'status': 'alive'})
+    try:
+        # Test database access
+        user_data = load_user_data()
+        return jsonify({
+            'status': 'alive',
+            'database': 'connected' if user_data is not None else 'error'
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

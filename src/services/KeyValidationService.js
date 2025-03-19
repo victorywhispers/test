@@ -4,9 +4,10 @@ import { db } from './Db.service.js';
 class KeyValidationService {
     constructor() {
         this.STORAGE_KEY = 'wormgpt_access_key';
+        // Update BASE_URL to match your service name in render.yaml
         this.BASE_URL = process.env.NODE_ENV === 'production' 
-            ? 'https://wormgpt-backend.onrender.com'
-            : 'http://127.0.0.1:5000';
+            ? 'https://wormgpt-api.onrender.com'  // Production URL
+            : 'http://localhost:5000';  // Local development URL
     }
 
     validateKeyFormat(key) {
@@ -24,14 +25,20 @@ class KeyValidationService {
             }
 
             console.log('Validating key with server:', key);
+            console.log('Using API URL:', this.BASE_URL);
             
             const response = await fetch(`${this.BASE_URL}/validate-key`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                 },
                 body: JSON.stringify({ key: key.toUpperCase() })
             });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
 
             const data = await response.json();
             console.log('Server response:', data);
@@ -50,7 +57,9 @@ class KeyValidationService {
             console.error('Key validation error:', error);
             return { 
                 valid: false, 
-                message: 'Error connecting to validation server. Please try again.' 
+                message: error.message.includes('Failed to fetch') 
+                    ? 'Cannot reach validation server. Please check your internet connection.'
+                    : `Validation error: ${error.message}`
             };
         }
     }

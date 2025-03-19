@@ -21,11 +21,8 @@ export class TasksComponent {
         await this.updateBonusDisplay();
 
         taskButton.addEventListener('click', async (e) => {
-            e.preventDefault();
+            // Don't prevent default - let the link open
             
-            // Open bot link in new tab
-            window.open('https://t.me/Get_Chatgpt2Bot?start=7903500450', '_blank');
-
             const timerContainer = document.querySelector('.task-timer');
             const timerElement = document.getElementById('task1-timer');
             
